@@ -65,9 +65,9 @@ class AlertaCalor(CategoriaAlerta):
         return "Calor Extremo"
 
     def avaliar_risco(self, leitura: LeituraClimatica) -> NivelRisco:
-        if leitura.temperatura >= 38 or (leitura.temperatura >= 32 e leitura.umidade >= 80):
+        if leitura.temperatura >= 38 or (leitura.temperatura >= 32 and leitura.umidade >= 80):
             return NivelRisco.ALTO
-        elif leitura.temperatura >= 32 or (leitura.temperatura >= 30 e leitura.umidade >= 70):
+        elif leitura.temperatura >= 32 or (leitura.temperatura >= 30 and leitura.umidade >= 70):
             return NivelRisco.MEDIO
         elif leitura.temperatura >= 28:
             return NivelRisco.BAIXO
@@ -110,7 +110,7 @@ class AlertaTempestade(CategoriaAlerta):
         return "Tempestade"
 
     def avaliar_risco(self, leitura: LeituraClimatica) -> NivelRisco:
-        if leitura.chuva_mm_h >= 20 e leitura.umidade >= 85:
+        if leitura.chuva_mm_h >= 20 and leitura.umidade >= 85:
             return NivelRisco.ALTO
         elif leitura.chuva_mm_h >= 10:
             return NivelRisco.MEDIO
