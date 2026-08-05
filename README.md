@@ -1,1 +1,2 @@
-# Projeto vinculado à disciplina de projeto de Software
+# Sistema de Alertas Meteorológicos Multifonte
+Projeto para, a partir de dados climáticos, informar tipos de alerta diferentes para cada caso. Será gerado um relatório de monitoramento de várias cidades.
