@@ -20,17 +20,14 @@ class LeituraClimatica:
         self._chuva_mm_h = float(chuva_mm_h)
 
     def _validar_dados(self, temp: float, umidade: float, chuva: float) -> None:
-        if temp is None or umidade is None or chuva is None:
-            raise ValueError("Dado ausente na resposta da API (None)")
-        else:
-            if temp == -999 or temp < -100 or temp > 70:
-                raise ValueError(f"Temperatura inválida ou ausente: {temp}°C")
+        if temp == -999 or temp < -100 or temp > 70:
+            raise ValueError(f"Temperatura inválida ou ausente: {temp}°C")
             
-            if umidade == -999 or not (0 <= umidade <= 100):
-                raise ValueError(f"Umidade fora do intervalo [0-100%]: {umidade}%")
+        if umidade == -999 or not (0 <= umidade <= 100):
+            raise ValueError(f"Umidade fora do intervalo [0-100%]: {umidade}%")
             
-            if chuva == -999 or chuva < 0:
-                raise ValueError(f"Taxa de chuva inválida: {chuva} mm/h")
+        if chuva == -999 or chuva < 0:
+            raise ValueError(f"Taxa de chuva inválida: {chuva} mm/h")
 
     @property
     def cidade(self) -> str:
@@ -61,6 +58,10 @@ class CategoriaAlerta(ABC):
     def avaliar_risco(self, leitura: LeituraClimatica) -> NivelRisco:
         pass
 
+    @abstractmethod
+    def descrever(self, leitura: LeituraClimatica) -> str:
+        pass
+
 
 class AlertaCalor(CategoriaAlerta):    
     @property
@@ -75,6 +76,10 @@ class AlertaCalor(CategoriaAlerta):
         elif leitura.temperatura >= 28:
             return NivelRisco.BAIXO
         return NivelRisco.NENHUM
+
+    def descrever(self, leitura: LeituraClimatica) -> str:
+        return f"Alerta de calor: sensação térmica elevada com {leitura.temperatura}°C e umidade de {leitura.umidade}%, mantenha-se hidratado!"
+    
 
 
 class AlertaAlagamento(CategoriaAlerta):
@@ -93,6 +98,9 @@ class AlertaAlagamento(CategoriaAlerta):
             return NivelRisco.BAIXO
         return NivelRisco.NENHUM
 
+    def descrever(self, leitura: LeituraClimatica) -> str:
+        return f"Alerta de alagamento: acúmulo de chuva de {leitura.chuva_mm_h} mm/h em {leitura.cidade}, evite vias de risco!"
+
 
 class AlertaGeada(CategoriaAlerta):    
     @property
@@ -106,6 +114,9 @@ class AlertaGeada(CategoriaAlerta):
             return NivelRisco.MEDIO
         return NivelRisco.NENHUM
 
+    def descrever(self, leitura: LeituraClimatica) -> str:
+        return f"Alerta de geada: temperatura crítica de {leitura.temperatura}°C em {leitura.cidade}, proteja hortas e animais!"
+
 
 class AlertaTempestade(CategoriaAlerta):
     @property
@@ -118,3 +129,33 @@ class AlertaTempestade(CategoriaAlerta):
         elif leitura.chuva_mm_h >= 10:
             return NivelRisco.MEDIO
         return NivelRisco.NENHUM
+
+    def descrever(self, leitura: LeituraClimatica) -> str:
+        return f"Alerta de tempestade: chuva de {leitura.chuva_mm_h} mm/h com umidade de {leitura.umidade}%, atenção a rajadas de vento e raios!"
+
+leitura_rio = LeituraClimatica("Rio de Janeiro", 39.5, 82.0, 0.0)
+
+leitura_sp = LeituraClimatica("São Paulo", 22.0, 92.0, 35.0)
+
+leitura_gramado = LeituraClimatica("Gramado", -1.5, 70.0, 0.0)
+
+leitura_curitiba = LeituraClimatica("Curitiba", 21.0, 60.0, 0.0)
+
+alerta_calor = AlertaCalor()
+alerta_alagamento = AlertaAlagamento()
+alerta_geada = AlertaGeada()
+alerta_tempestade = AlertaTempestade()
+
+alertas = [alerta_calor, alerta_alagamento, alerta_geada, alerta_tempestade]
+
+leituras = [leitura_rio, leitura_sp, leitura_gramado, leitura_curitiba]
+
+for leitura in leituras:
+    print(f"\n=== Relatório para {leitura.cidade} ===")
+    print(leitura)  # Chama o __repr__ da classe
+    
+    for alerta in alertas:
+        risco = alerta.avaliar_risco(leitura)
+        
+        if risco != NivelRisco.NENHUM:
+            print(f"[{risco.value}]: {alerta.descrever(leitura)}")
