@@ -20,14 +20,17 @@ class LeituraClimatica:
         self._chuva_mm_h = float(chuva_mm_h)
 
     def _validar_dados(self, temp: float, umidade: float, chuva: float) -> None:
-        if temp == -999 or temp < -100 or temp > 70:
-            raise ValueError(f"Temperatura inválida ou ausente: {temp}°C")
+        if temp is None or umidade is None or chuva is None:
+            raise ValueError("Dado ausente na resposta da API (None)")
+        else:
+            if temp == -999 or temp < -100 or temp > 70:
+                raise ValueError(f"Temperatura inválida ou ausente: {temp}°C")
             
-        if umidade == -999 or not (0 <= umidade <= 100):
-            raise ValueError(f"Umidade fora do intervalo [0-100%]: {umidade}%")
+            if umidade == -999 or not (0 <= umidade <= 100):
+                raise ValueError(f"Umidade fora do intervalo [0-100%]: {umidade}%")
             
-        if chuva == -999 or chuva < 0:
-            raise ValueError(f"Taxa de chuva inválida: {chuva} mm/h")
+            if chuva == -999 or chuva < 0:
+                raise ValueError(f"Taxa de chuva inválida: {chuva} mm/h")
 
     @property
     def cidade(self) -> str:
