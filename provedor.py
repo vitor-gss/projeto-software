@@ -4,8 +4,19 @@ from sistema import LeituraClimatica
 
 class ProvedorClimatico(ABC):
     @abstractmethod
-    def pegar_leitura(self, cidade: str, lat: float, lon: float) -> LeituraClimatica:
+    def obter_leitura(self, cidade: str, lat: float, lon: float) -> LeituraClimatica:
         pass
+
+class ProvedorFalso(ProvedorClimatico):
+    DADOS = {
+        "Maceió":   (34, 85, 10),    # o exemplo do enunciado
+        "Recife":   (30, 70, 35),    # alagamento CRÍTICO
+        "Curitiba": (-1, 60, 0),     # geada ALTO
+    }
+
+    def obter_leitura(self, cidade, lat, lon):
+        temp, umid, chuva = self.DADOS[cidade]
+        return LeituraClimatica(cidade, temp, umid, chuva)
 
 class OpenMeteoProvider(ProvedorClimatico):
     URL = "https://api.open-meteo.com/v1/forecast"

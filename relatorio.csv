@@ -1,0 +1,4 @@
+﻿Cidade;Temperatura (°C);Umidade (%);Chuva (mm/h);Alertas ativos
+Maceió;34.0;85.0;10.0;Alerta de alagamento: acúmulo de chuva de 10.0 mm/h em Maceió, evite vias de risco! MÉDIO | Alerta de tempestade: chuva de 10.0 mm/h com umidade de 85.0%, atenção a rajadas de vento e raios! MÉDIO | Alerta de calor: sensação térmica elevada com 34.0°C e umidade de 85.0%, mantenha-se hidratado! ALTO
+Recife;30.0;70.0;35.0;Alerta de alagamento: acúmulo de chuva de 35.0 mm/h em Recife, evite vias de risco! CRÍTICO | Alerta de tempestade: chuva de 35.0 mm/h com umidade de 70.0%, atenção a rajadas de vento e raios! MÉDIO | Alerta de calor: sensação térmica elevada com 30.0°C e umidade de 70.0%, mantenha-se hidratado! MÉDIO
+Curitiba;-1.0;60.0;0.0;Alerta de geada: temperatura crítica de -1.0°C em Curitiba, proteja hortas e animais! ALTO

@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import NamedTuple
 
 class NivelRisco(Enum):
     NENHUM = "NENHUM"
@@ -19,7 +18,11 @@ class LeituraClimatica:
         self._umidade = float(umidade)
         self._chuva_mm_h = float(chuva_mm_h)
 
-    def _validar_dados(self, temp: float, umidade: float, chuva: float) -> None:
+    def _validar_dados(self, temp: float, umidade: float, chuva: float) -> None: # RF1: validação na fronteira, objeto inválido nunca é criado
+        #precisamos primeiro ver se não é None (null), ja que é o retorno da API quando falta dado
+        if temp is None or umidade is None or chuva is None:
+            raise ValueError ("Dado ausente, retorno da API -> None")
+        
         if temp == -999 or temp < -100 or temp > 70:
             raise ValueError(f"Temperatura inválida ou ausente: {temp}°C")
             
@@ -29,7 +32,7 @@ class LeituraClimatica:
         if chuva == -999 or chuva < 0:
             raise ValueError(f"Taxa de chuva inválida: {chuva} mm/h")
 
-    @property
+    @property #RF2 
     def cidade(self) -> str:
         return self._cidade
 
@@ -59,17 +62,17 @@ class CategoriaAlerta(ABC):
         pass
 
     @abstractmethod
-    def descrever(self, leitura: LeituraClimatica) -> str:
+    def descrever(self, leitura: LeituraClimatica) -> str: # RF4, fazendo metodo abs faz a descricao obrigatoria
         pass
 
-
+# RF3 multiplas categorias de alerta
 class AlertaCalor(CategoriaAlerta):    
     @property
     def nome(self) -> str:
         return "Calor Extremo"
 
-    def avaliar_risco(self, leitura: LeituraClimatica) -> NivelRisco:
-        if leitura.temperatura >= 38 or (leitura.temperatura >= 32 and leitura.umidade >= 80):
+    def avaliar_risco(self, leitura: LeituraClimatica) -> NivelRisco: # RF2: risco derivado no momento da chamada, nunca armazenado,
+        if leitura.temperatura >= 38 or (leitura.temperatura >= 32 and leitura.umidade >= 80): #igual p/ todos os alertas
             return NivelRisco.ALTO
         elif leitura.temperatura >= 32 or (leitura.temperatura >= 30 and leitura.umidade >= 70):
             return NivelRisco.MEDIO
@@ -133,29 +136,3 @@ class AlertaTempestade(CategoriaAlerta):
     def descrever(self, leitura: LeituraClimatica) -> str:
         return f"Alerta de tempestade: chuva de {leitura.chuva_mm_h} mm/h com umidade de {leitura.umidade}%, atenção a rajadas de vento e raios!"
 
-leitura_rio = LeituraClimatica("Rio de Janeiro", 39.5, 82.0, 0.0)
-
-leitura_sp = LeituraClimatica("São Paulo", 22.0, 92.0, 35.0)
-
-leitura_gramado = LeituraClimatica("Gramado", -1.5, 70.0, 0.0)
-
-leitura_curitiba = LeituraClimatica("Curitiba", 21.0, 60.0, 0.0)
-
-alerta_calor = AlertaCalor()
-alerta_alagamento = AlertaAlagamento()
-alerta_geada = AlertaGeada()
-alerta_tempestade = AlertaTempestade()
-
-alertas = [alerta_calor, alerta_alagamento, alerta_geada, alerta_tempestade]
-
-leituras = [leitura_rio, leitura_sp, leitura_gramado, leitura_curitiba]
-
-for leitura in leituras:
-    print(f"\n=== Relatório para {leitura.cidade} ===")
-    print(leitura)  # Chama o __repr__ da classe
-    
-    for alerta in alertas:
-        risco = alerta.avaliar_risco(leitura)
-        
-        if risco != NivelRisco.NENHUM:
-            print(f"[{risco.value}]: {alerta.descrever(leitura)}")
