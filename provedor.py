@@ -16,7 +16,7 @@ class ProvedorFalso(ProvedorClimatico):
 
     def obter_leitura(self, cidade, lat, lon):
         if cidade not in self.DADOS: #Messias - Adicionei essa linha
-            raise ValueError(f"Cidade '{cidade}' não encontrada nos dados") #Zacarias - Adicionei essa linha
+            raise ValueError(f"Cidade '{cidade}' não encontrada nos dados") #Messias - Adicionei essa linha
         temp, umid, chuva = self.DADOS[cidade]
         return LeituraClimatica(cidade, temp, umid, chuva)
 
