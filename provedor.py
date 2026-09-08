@@ -49,10 +49,9 @@ class OpenMeteoProvider(ProvedorClimatico):
             self.session = requests.Session()  # Fallback para testes
 
     def obter_leitura(self, cidade: str, lat: float, lon: float) -> LeituraClimatica:
-        # Avisa se está usando cache (útil para debugging)
+        # Avisa se está usando cache
         if self.use_cache:
             cache_key = f"{lat}_{lon}"  # requests_cache faz isso internamente
-            # Não precisamos verificar manualmente - a biblioteca faz isso!
         
         resposta = self.session.get(
             self.URL,
@@ -65,7 +64,7 @@ class OpenMeteoProvider(ProvedorClimatico):
         )
         resposta.raise_for_status()
         
-        # Verifica se veio do cache (opcional, para debugging)
+        # Verifica se veio do cache
         if hasattr(resposta, 'from_cache') and resposta.from_cache:
             print(f"  [CACHE] Dados de {cidade} carregados do cache")
         else:
