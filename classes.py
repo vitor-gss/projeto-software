@@ -20,6 +20,8 @@ class LeituraClima:
 
     # * RF1[E]:
     def _validar_dados(self, temperatura: float, umidade: float, chuva: float) -> None:
+        if temperatura is None or umidade is None or chuva is None:
+            raise ValueError("Dado ausente na resposta da API")
         if temperatura < -50 or temperatura > 80:
             raise ValueError(f"Temperatura inválida ou ausente")
         if umidade == -999 or not (0 <= umidade <= 100):
@@ -143,11 +145,21 @@ class ProvedorClima(ABC):
     
 class ProvedorOpenMeteo(ProvedorClima):
     def obter_leitura(self, cidade: str) -> LeituraClima:
-         lat, lon = obter_localizacao_cidade(cidade)
-         dados = buscar_previsao(lat, lon)
-         
-         return LeituraClima(cidade = cidade, temperatura=dados["current"]["temperature_2m"], umidade=dados["current"]["relative_humidity_2m"], chuva=dados["current"]["rain"])
+        lat, lon = obter_localizacao_cidade(cidade)
+        dados = buscar_previsao(lat, lon)
 
+        try:
+            atual = dados["current"]
+        except KeyError:
+            raise ValueError("Resposta da API em formato inesperado")
+
+        return LeituraClima(
+            cidade=cidade,
+            temperatura=atual.get("temperature_2m"),
+            umidade=atual.get("relative_humidity_2m"),
+            chuva=atual.get("rain"),
+        )
+    
 class ProvedorFicticio(ProvedorClima):
     def obter_leitura(self, cidade: str) -> LeituraClima:
         return LeituraClima(

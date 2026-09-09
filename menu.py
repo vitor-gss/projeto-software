@@ -81,6 +81,7 @@ def imprimir_relatorio(leitura):
 def leitura_unica(provedor, escolha_cidade): #leitura da cidade
     lat, lon = None, None
 
+ 
     for cidade, latitude, longitude in cidades:
         if cidade == escolha_cidade:
             lat = latitude
@@ -139,6 +140,9 @@ def menu():
             for cidade, _, _ in cidades:
                 print(f"-> {cidade}");
             escolha_cidade = input("Digite o nome da cidade que deseja\n")
+
+
+
             leitura_unica(provedor, escolha_cidade)
         elif escolha == "2":
             resultados = coletar_resultados(provedor)
