@@ -1,9 +1,4 @@
-import openmeteo_requests
 import requests
-
-import pandas as pd
-import requests_cache
-from retry_requests import retry
 
 def obter_localizacao_cidade(cidade: str) -> tuple[float, float]:
     url = "https://geocoding-api.open-meteo.com/v1/search"

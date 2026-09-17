@@ -18,7 +18,7 @@ class LeituraClima:
         self._umidade = umidade
         self._chuva = chuva # Medida em mm
 
-    # * RF1[E]:
+    # * RF1[E]: Dados climáticos protegidos. (Os dados climáticos obtidos da API jamais podem existir em estado inválido ou inconsistente.)
     def _validar_dados(self, temperatura: float, umidade: float, chuva: float) -> None:
         if temperatura is None or umidade is None or chuva is None:
             raise ValueError("Dado ausente na resposta da API")
@@ -29,7 +29,7 @@ class LeituraClima:
         if chuva < 0:
             raise ValueError(f"Taxa de chuva inválida: {chuva} mm/h")
 
-    @property
+    @property # * RF2 [E] — Calculado, não atribuível.
     def cidade(self) -> str:
         return self._cidade
     
@@ -52,7 +52,7 @@ class LeituraClima:
     
         return f"<{self._cidade}, {self._temperatura}°C, {self._umidade}%, {self._chuva}mm>"
 
-# ! Alertas -----------------------
+# * RF3 [A/H]: Múltiplas categorias de alerta. -----------------------
 
 class Alerta(ABC):
     # Classe Abstrata, serve de molde para as outras
@@ -65,6 +65,7 @@ class Alerta(ABC):
     def avaliar_risco(self, leitura: LeituraClima) -> NivelRisco:
         pass
 
+    # * RF4 [P]: Alertas autodescritivos.
     @abstractmethod
     def mensagem_alerta(self, leitura: LeituraClima) -> str:
         pass
@@ -166,6 +167,30 @@ class ProvedorFicticio(ProvedorClima):
             cidade=cidade,
             temperatura=32.0,
             umidade=45.0,
-            chuva=0.0,
+            chuva=25.0,
         )
+
+# * -------------
+class ResultadoCidade:
+    def __init__(self, cidade: str, leitura: LeituraClima, ativos: list, erro: str):
+        self._cidade = cidade
+        self._leitura = leitura
+        self._ativos = list(ativos)
+        self._erro = erro
         
+    @property
+    def cidade(self) -> str:
+        return self._cidade
+
+    @property
+    def leitura(self) -> LeituraClima:
+        return self._leitura
+    
+    @property
+    def ativos(self) -> list:
+        return self._ativos
+
+    @property
+    def erro(self) -> str:
+        return self._erro
+
