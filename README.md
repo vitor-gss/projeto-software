@@ -1,7 +1,7 @@
 # Sistema de Alertas Meteorológicos Multifonte
-Projeto para, a partir de dados climáticos, informar tipos de alerta diferentes para cada caso. Será gerado um relatório de monitoramento de várias cidades.
+Este projeto é um sistema em Python orientado a objetos desenvolvido para monitorar condições climáticas de múltiplas localidades em tempo real, avaliar níveis de risco meteorológico e gerar relatórios consolidados em diferentes formatos.
 
-## Requisitos feitos
+## Funcionalidades
 - **RF1 [E] — Dados climáticos protegidos**. Os dados climáticos obtidos da API jamais podem
 existir em estado inválido ou inconsistente.
 - **RF2 [E] — Calculado, não atribuível**. Código externo não pode alterar uma leitura climática
@@ -18,4 +18,16 @@ categoria específica está processando.
 provedor de dados climáticos sem alterações na lógica de avaliação de alertas.
 - **RF7 [C] — Monitoramento de múltiplas localidades.** O sistema deve monitorar várias
 localidades e produzir um único relatório consolidado.
+- **RF8 [X] — Falha graciosa.** O sistema não pode travar quando a API estiver inacessível,
+retornar dados malformados ou for consultada sobre uma localidade inexistente.
+- **RF9 [A] — Múltiplos formatos de relatório.** O sistema deve exportar relatórios em pelo
+menos dois formatos, com a escolha do formato desacoplada da geração do relatório.
+- **RF10 [E] — Cache transparente.** Requisições repetidas para a mesma localidade em um
+curto intervalo não devem sempre gerar nova chamada de rede, e isso deve ser invisível para o
+código solicitante.
 
+## Como Executar
+
+1. Certifique-se de ter o Python 3.10+ e a biblioteca `requests` instalados:
+   ```bash
+   pip install requests

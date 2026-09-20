@@ -1,109 +1,84 @@
-import requests 
-from classes import (ResultadoCidade, ProvedorOpenMeteo, ProvedorFicticio, AlertaAlagamento, AlertaGeada, AlertaCalor, AlertaTempestade, NivelRisco)
+import requests
+from classes import (
+    ResultadoCidade, ProvedorOpenMeteo, ProvedorFicticio, ProvedorCache,
+    AlertaAlagamento, AlertaGeada, AlertaCalor, AlertaTempestade, NivelRisco,
+    ExportadorConsole, ExportadorCSV, ExportadorJSON
+)
 from cidades import cidades
 
 # * RF6 [A/IF] — Provedores de dados intercambiáveis. 
-leitura_api = ProvedorOpenMeteo()
-# leitura_api = ProvedorFicticio()
+provedor_base = ProvedorOpenMeteo()
+# provedor_base = ProvedorFicticio()
+provedor = ProvedorCache(provedor_base, ttl_segundos=300)
 
-alerta_calor = AlertaCalor()
-alerta_alagamento = AlertaAlagamento()
-alerta_geada = AlertaGeada()
-alerta_tempestade = AlertaTempestade()
+alertas = [AlertaCalor(), AlertaAlagamento(), AlertaGeada(), AlertaTempestade()]
 
-alertas = [alerta_calor, alerta_alagamento, alerta_geada, alerta_tempestade]
-
-def leitura_unica_cidade(provedor, cidade):
-    try:
-        leitura = provedor.obter_leitura(cidade)
-    except ValueError as e:
-        print(f" [dado invalido] {e}")
-        return 
-    # Para quando estiver sem internet
-    except requests.RequestException as e: 
-        print(f" [falha de rede] {e}")
-        return
-    
-    imprimir_relatorio(leitura)
-
-# Analisa quais nao tem risco nenhum para nao imprimir ()
+# * RF5 [P] — Avaliação uniforme. O sistema deve avaliar uma coleção mista de alertas e
+# * produzir uma avaliação de risco para cada um, sem que a lógica de avaliação saiba qual
+# * categoria específica está processando.
 def avaliar_alertas_ativos(leitura):
-    alertas_ativos = []
-    for alerta in alertas: # * RF5 [P] — Avaliação uniforme.
-        nivel = alerta.avaliar_risco()
-        if nivel != NivelRisco.NENHUM:
-            alertas_ativos.append((alerta.mensagem_alerta(leitura), nivel))
-        return alertas_ativos
-
-def coletar_resultados(provedor):
-    resultados = []
-    for cidade in cidades:
-        try:
-            leitura = provedor.obter_leitura(cidade)
-        except ValueError as e:
-            resultados.append(ResultadoCidade(cidade, None, [], str(e)))
-            continue
-        except requests.RequestException as e:
-            resultados.append(ResultadoCidade(cidade, None, [], f"falha de rede: {e}"))
-            continue
-        alertas_ativos = avaliar_alertas_ativos(leitura)
-        resultados.append(ResultadoCidade(cidade, leitura, alertas_ativos, ""))
-    return resultados
-        
-def imprimir_detalhado(resultados):
-    for res in resultados:
-        print(f"\n{res.cidade} :")
-        if res.erro:
-            print(f" [dado inválido] {res.erro}")
-            continue
-        print(f"  {res.leitura.temperatura}°C ; {res.leitura.umidade}% ; {res.leitura.chuva}mm/h")
-        for nome, nivel in res.alertas_ativos:
-            print(f"{nome | {nivel.value}}")
-            
-def imprimir_relatorio(leitura):
-    print(f"{leitura.temperatura}°C ; {leitura.umidade}% ; {leitura.chuva}mm/h.")
+    ativos = []
     for alerta in alertas:
         nivel = alerta.avaliar_risco(leitura)
-        print(f"{alerta.mensagem_alerta(leitura)} | {nivel.value}")
+        if nivel != NivelRisco.NENHUM:
+            ativos.append((alerta.mensagem_alerta(leitura), nivel))
+    return ativos
 
-# try:
-#     leitura = leitura_api.obter_leitura("São Paulo")
-# except ValueError as e:
-#     print(f"[erro] {e}")
-# except requests.RequestException as e:
-#     print(f"[falha de rede] {e}")
-# else:
-#     print(leitura)
-#     print(f"Relatório para {leitura.cidade}:")
-#     for alerta in alertas:
-#         risco = alerta.avaliar_risco(leitura)
-#         if risco != NivelRisco.NENHUM:
-#             print(f"[{risco.value}]: {alerta.mensagem_alerta(leitura)}")
+def coletar_resultados(provedor, lista_cidades):
+    resultados = []
+    for cidade in lista_cidades:
+        try:
+            leitura = provedor.obter_leitura(cidade)
+            alertas_ativos = avaliar_alertas_ativos(leitura)
+            resultados.append(ResultadoCidade(cidade, leitura, alertas_ativos, ""))
+        except ValueError as e:
+            resultados.append(ResultadoCidade(cidade, None, [], str(e)))
+        except requests.RequestException as e:
+            resultados.append(ResultadoCidade(cidade, None, [], f"falha de rede: {e}"))
+    return resultados
             
 def main():
-
+    print("^-^ Sistema de Alertas Meteorológicos Multifonte ^-^")
     while True:
         print("1 - Relatório de uma cidade")
         print("2 - Relatório de todas as cidades")
-        print("3 - Relatório consolidado")
-        print("4 - SAIR")
-        escolha = input("Digite o número da opção que deseja\n")
+        print("3 - Exportar relatório consolidado (CSV)")
+        print("4 - Exportar relatório consolidado (JSON)")
+        print("5 - Buscar cidade personalizada")
+        print("6 - SAIR")
+        escolha = input("Digite o número da opção que deseja: ")
 
         if escolha == "1":
-            # for cidade in cidades:
-            #     print(f"-> {cidade}")
-            cidade_digitada = input("Digite o nome da cidade que deseja\n")
-
-            leitura_unica_cidade(leitura_api, cidade_digitada)
+            for cidade in cidades:
+                print(f"-> {cidade}")
+            cidade_digitada = input("Digite o nome da cidade que deseja: ")
+            if cidade_digitada in cidades:
+                res = coletar_resultados(provedor, [cidade_digitada])
+                ExportadorConsole().exportar(res)
+            else:
+                print(f"Erro: A cidade '{cidade_digitada}' não está na lista.")
+            # * RF7 [C] — Monitoramento de múltiplas localidades. O sistema deve monitorar várias
+            # * localidades e produzir um único relatório consolidado.
         elif escolha == "2":
-            resultados = coletar_resultados(leitura_api)
-            imprimir_detalhado(resultados)
-        # elif escolha == "3":
-        #     resultados = coletar_resultados(provedor)
-        #     exportar_csv(resultados)
-            # print("\nResultado entregue!\n\n")
+            res = coletar_resultados(provedor, cidades)
+            ExportadorConsole().exportar(res)
+
+        elif escolha == "3":
+            res = coletar_resultados(provedor, cidades)
+            ExportadorCSV().exportar(res, "relatorio.csv")
+            print("\nRelatório CSV gerado com sucesso!\n")
+
         elif escolha == "4":
-            break
+            res = coletar_resultados(provedor, cidades)
+            ExportadorJSON().exportar(res, "relatorio.json")
+            print("\nRelatório JSON gerado com sucesso!\n")
+
+        elif escolha == "5":
+            cidade_digitada = input("Digite o nome da cidade que deseja: ")
+            res = coletar_resultados(provedor, [cidade_digitada])
+            ExportadorConsole().exportar(res)
+        elif escolha == "6":
+            break    
         else:
             print("Escolha um número existente.")
             

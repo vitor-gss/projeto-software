@@ -1,5 +1,8 @@
+import time
 from abc import ABC, abstractmethod
 from enum import Enum
+import json
+import csv
 from api import obter_localizacao_cidade, buscar_previsao
 
 class NivelRisco(Enum):
@@ -14,9 +17,9 @@ class LeituraClima:
         self._validar_dados(temperatura, umidade, chuva)
 
         self._cidade = cidade
-        self._temperatura = temperatura
-        self._umidade = umidade
-        self._chuva = chuva # Medida em mm
+        self._temperatura = float(temperatura)
+        self._umidade = float(umidade)
+        self._chuva = float(chuva) # Medida em mm
 
     # * RF1[E]: Dados climáticos protegidos. (Os dados climáticos obtidos da API jamais podem existir em estado inválido ou inconsistente.)
     def _validar_dados(self, temperatura: float, umidade: float, chuva: float) -> None:
@@ -34,15 +37,15 @@ class LeituraClima:
         return self._cidade
     
     @property
-    def temperatura(self) -> str:
+    def temperatura(self) -> float:
         return self._temperatura
 
     @property
-    def umidade(self) -> str:
+    def umidade(self) -> float:
         return self._umidade
 
     @property
-    def chuva(self) -> str:
+    def chuva(self) -> float:
         return self._chuva
 
     def __repr__(self):
@@ -166,16 +169,37 @@ class ProvedorFicticio(ProvedorClima):
         return LeituraClima(
             cidade=cidade,
             temperatura=32.0,
-            umidade=45.0,
-            chuva=25.0,
+            umidade=65.0,
+            chuva=88.0,
         )
+
+# * RF10 [E] — Cache transparente. Requisições repetidas para a mesma localidade em um
+# * curto intervalo não devem sempre gerar nova chamada de rede, e isso deve ser invisível para o
+# * código solicitante.
+
+class ProvedorCache(ProvedorClima):
+    def __init__(self, provedor_real: ProvedorClima, ttl_segundos: int = 300):
+        self._provedor_real = provedor_real
+        self._ttl = ttl_segundos
+        self._cache = {}  # {cidade: (leitura_objeto, timestamp)}
+
+    def obter_leitura(self, cidade: str) -> LeituraClima:
+        agora = time.time()
+        if cidade in self._cache:
+            leitura, timestamp = self._cache[cidade]
+            if agora - timestamp < self._ttl:
+                return leitura
+        
+        nova_leitura = self._provedor_real.obter_leitura(cidade)
+        self._cache[cidade] = (nova_leitura, agora)
+        return nova_leitura
 
 # * -------------
 class ResultadoCidade:
-    def __init__(self, cidade: str, leitura: LeituraClima, ativos: list, erro: str):
+    def __init__(self, cidade: str, leitura: LeituraClima, alertas_ativos: list, erro: str):
         self._cidade = cidade
         self._leitura = leitura
-        self._ativos = list(ativos)
+        self._alertas_ativos = list(alertas_ativos)
         self._erro = erro
         
     @property
@@ -187,10 +211,67 @@ class ResultadoCidade:
         return self._leitura
     
     @property
-    def ativos(self) -> list:
-        return self._ativos
+    def alertas_ativos(self) -> list:
+        return self._alertas_ativos
 
     @property
     def erro(self) -> str:
         return self._erro
+    
+# * RF9 [A] — Múltiplos formatos de relatório. O sistema deve exportar relatórios em pelo
+# * menos dois formatos, com a escolha do formato desacoplada da geração do relatório.
+
+class ExportadorRelatorio(ABC):
+    @abstractmethod
+    def exportar(self, resultados: list[ResultadoCidade], destino: str = None) -> None:
+        pass
+
+class ExportadorConsole(ExportadorRelatorio):
+    def exportar(self, resultados: list[ResultadoCidade], destino: str = None) -> None:
+        print("\n=== RELATÓRIO CLIMÁTICO ===")
+        for res in resultados:
+            if res.erro:
+                print(f"{res.cidade}: ERRO -> {res.erro}")
+            else:
+                print(f"{res.cidade} ({res.leitura.temperatura}°C, {res.leitura.umidade}%, {res.leitura.chuva}mm/h)\n")
+                for msg, n in res.alertas_ativos:
+                    print(f"{n.value}: {msg}\n")
+                if not res.alertas_ativos:
+                     print("Sem Alertas Ativos")
+            print("===========================")
+                
+
+class ExportadorCSV(ExportadorRelatorio):
+    def exportar(self, resultados: list[ResultadoCidade], destino: str = "relatorio.csv") -> None:
+        with open(destino, "w", newline="", encoding="utf-8-sig") as file:
+            escritor = csv.writer(file, delimiter=";")
+            escritor.writerow(["Cidade", "Temperatura (°C)", "Umidade (%)", "Chuva (mm/h)", "Alertas ativos"])
+
+            for res in resultados:
+                if res.erro:
+                    escritor.writerow([res.cidade, "", "", "", f"ERRO: {res.erro}"])
+                else:
+                    if res.alertas_ativos:
+                        partes = [f"{desc} [{nivel.value}]" for desc, nivel in res.alertas_ativos]
+                        texto = " | ".join(partes)
+                    else:
+                        texto = "Sem alertas"
+                    escritor.writerow([res.cidade, res.leitura.temperatura, res.leitura.umidade, res.leitura.chuva, texto])
+
+class ExportadorJSON(ExportadorRelatorio):
+    def exportar(self, resultados: list[ResultadoCidade], destino: str = "relatorio.json") -> None:
+        dados = []
+        for res in resultados:
+            if res.erro:
+                dados.append({"cidade": res.cidade, "erro": res.erro})
+            else:
+                dados.append({
+                    "cidade": res.cidade,
+                    "temperatura": res.leitura.temperatura,
+                    "umidade": res.leitura.umidade,
+                    "chuva": res.leitura.chuva,
+                    "alertas": [{"mensagem": msg, "nivel": nivel.value} for msg, nivel in res.alertas_ativos]
+                })
+        with open(destino, "w", encoding="utf-8") as f:
+            json.dump(dados, f, ensure_ascii=False, indent=4)
 
