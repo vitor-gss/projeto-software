@@ -138,6 +138,22 @@ class AlertaTempestade(Alerta):
     
     def mensagem_alerta(self, leitura: LeituraClima):
         return f"⛈️ Alerta de tempestade: chuva de {leitura.chuva} mm/h com umidade de {leitura.umidade}%, atenção a rajadas de vento e raios!"
+    
+class AlertaVento(Alerta):
+    @property
+    def nome(self) -> str:
+        return "Vento"
+
+    def avaliar_risco(self, leitura: LeituraClima) -> NivelRisco:
+        if leitura.chuva >= 25 and leitura.umidade >= 80:
+            return NivelRisco.ALTO
+        elif leitura.chuva >= 15:
+            return NivelRisco.MEDIO
+        return NivelRisco.NENHUM
+
+    
+    def mensagem_alerta(self, leitura: LeituraClima):
+        return f"🍃 Alerta de vento: rajadas prováveis com chuva de {leitura.chuva} mm/h."
  
 # ! Provedores --------------------
 
@@ -168,9 +184,9 @@ class ProvedorFicticio(ProvedorClima):
     def obter_leitura(self, cidade: str) -> LeituraClima:
         return LeituraClima(
             cidade=cidade,
-            temperatura=32.0,
+            temperatura=43.0,
             umidade=65.0,
-            chuva=88.0,
+            chuva=80.0,
         )
 
 # * RF10 [E] — Cache transparente. Requisições repetidas para a mesma localidade em um
@@ -274,4 +290,3 @@ class ExportadorJSON(ExportadorRelatorio):
                 })
         with open(destino, "w", encoding="utf-8") as f:
             json.dump(dados, f, ensure_ascii=False, indent=4)
-
